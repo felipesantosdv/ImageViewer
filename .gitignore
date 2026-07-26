@@ -69,3 +69,5 @@ Testing/
 .cache/
 
 .clangd
+
+cmake-build-debug/
