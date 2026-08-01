@@ -17,10 +17,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-constexpr std::int32_t WIDTH{800};
-constexpr std::int32_t HEIGHT{800};
-const std::string TITLE{"Viewer"};
-
 void framebuffer_size_callback([[maybe_unused]] GLFWwindow *window, GLsizei width, GLsizei height) {
     glViewport(0, 0, width, height);
 }
@@ -31,18 +27,19 @@ void proccess_input(GLFWwindow *window) {
     }
 }
 
+std::filesystem::path exe_dir(char *src_file) {
+    return std::filesystem::absolute(src_file).parent_path();
+}
+
 GLuint compile_shader(GLenum type, const char *source) {
     std::ifstream file;
     std::stringstream buffered_lines;
     std::string line;
 
-    const std::string parent_path{std::filesystem::current_path().string()};
-    std::string abs_path{parent_path + source};
-
-    file.open(abs_path);
+    file.open(source);
     if (!file.is_open()) {
         fmt::print(fg(fmt::color::crimson) | fmt::emphasis::bold, "ERROR: ");
-        fmt::println("Could not open file: {}\n", abs_path);
+        fmt::println("Could not open file: {}\n", source);
         return 0;
     }
     while (std::getline(file, line)) {
@@ -95,6 +92,10 @@ GLuint create_shader_program(const char *vertexSrc, const char *fragmentSrc) {
 
 int main(int argc, char *argv[]) {
 
+    constexpr std::int32_t WIDTH{800};
+    constexpr std::int32_t HEIGHT{600};
+    constexpr std::string_view TITLE{"Image Viewer"};
+
     if (argc != 2) {
         fmt::print(fg(fmt::color::crimson) | fmt::emphasis::bold, "ERROR: ");
         fmt::println("Number of arguments not supported");
@@ -122,7 +123,7 @@ int main(int argc, char *argv[]) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow *window{glfwCreateWindow(WIDTH, HEIGHT, TITLE.c_str(), nullptr, nullptr)};
+    GLFWwindow *window{glfwCreateWindow(WIDTH, HEIGHT, TITLE.data(), nullptr, nullptr)};
     if (window == nullptr) {
         fmt::print(fg(fmt::color::crimson) | fmt::emphasis::bold, "ERROR: ");
         fmt::println("Could not open GLFW Window");
@@ -150,7 +151,10 @@ int main(int argc, char *argv[]) {
         -1.0f, 1.0f, 0.0f, 1.0f};
     constexpr std::array<std::uint32_t, 6> INDICES{0, 1, 2, 2, 3, 0};
 
-    GLuint shader_program{create_shader_program("/shaders/vertex.glsl", "/shaders/fragment.glsl")};
+    std::filesystem::path base_path{exe_dir(argv[0])};
+    GLuint shader_program{create_shader_program(
+        (base_path / "shaders" / "vertex.glsl").string().c_str(),
+        (base_path / "shaders" / "fragment.glsl").string().c_str())};
 
     GLuint vao, vbo, ebo;
     glGenVertexArrays(1, &vao);
